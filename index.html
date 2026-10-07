@@ -28,7 +28,10 @@ svg{display:block}
 
 /* ===== camera ===== */
 #cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#0b0b0d}
-#cam.mirror{transform:scaleX(-1)}
+#cam.mirror,#fx.mirror{transform:scaleX(-1)}
+#fx{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+body.fxon #fx{display:block}
+body.fxon #cam{opacity:0}
 
 /* ===== onboarding ===== */
 #start{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
@@ -77,7 +80,7 @@ body.recording .pill .dot{background:#fff;animation:blink 1s infinite}
 .pill .sub{font-weight:500;color:var(--fg2)}
 .pill .sub:empty{display:none}
 @keyframes blink{50%{opacity:.25}}
-#progress{position:fixed;left:16px;right:16px;top:calc(var(--st) + 46px);height:3px;border-radius:2px;background:rgba(255,255,255,.14);z-index:6;overflow:hidden;pointer-events:none}
+#progress{position:fixed;left:16px;right:64px;top:calc(var(--st) + 46px);height:3px;border-radius:2px;background:rgba(255,255,255,.14);z-index:6;overflow:hidden;pointer-events:none}
 #progress i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
 
 #flipCam{position:fixed;top:calc(var(--st) + 2px);right:12px;z-index:7;width:42px;height:42px;border-radius:50%;border:0;padding:0;
@@ -86,7 +89,16 @@ body.recording .pill .dot{background:#fff;animation:blink 1s infinite}
 #flipCam svg{width:24px;height:24px;fill:#fff}
 #flipCam.turn{transform:rotate(180deg)}
 #flipCam[hidden]{display:none}
-body.recording #flipCam,body.counting #flipCam{opacity:.3}
+#fxBtn{position:fixed;top:calc(var(--st) + 52px);right:12px;z-index:7;width:42px;height:42px;border-radius:50%;border:0;padding:0;
+  display:flex;align-items:center;justify-content:center;background:var(--glass);transition:opacity .2s,background .2s;
+  backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+#fxBtn svg{width:22px;height:22px;fill:#fff}
+#fxBtn.on{background:var(--accent)}
+#fxBtn.on svg{fill:var(--accent-ink)}
+#fxBtn.loading svg{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+body.recording #flipCam,body.counting #flipCam,body.recording #fxBtn,body.counting #fxBtn{opacity:.3}
+.cell.slider.dim{opacity:.4}
 #countdown{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;pointer-events:none}
 #countdown span{width:140px;height:140px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-size:76px;font-weight:700;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
@@ -184,6 +196,7 @@ textarea{width:100%;height:50vh;border:0;border-radius:12px;background:var(--cel
 </head>
 <body>
 <video id="cam" class="mirror" playsinline autoplay muted></video>
+<canvas id="fx" class="mirror"></canvas>
 
 <!-- onboarding -->
 <div id="start">
@@ -210,6 +223,7 @@ textarea{width:100%;height:50vh;border:0;border-radius:12px;background:var(--cel
 
 <div id="hud"><div class="pill"><span class="dot"></span><span id="time">00:00</span><span class="sub" id="remain"></span></div></div>
 <button id="flipCam" aria-label="Cambia fotocamera"><svg viewBox="0 0 24 24"><path d="M20 5h-3.17L15 3H9L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-8 13a5 5 0 0 1-4.9-4H5l2.7-2.7L10.4 14H8.9a3.2 3.2 0 0 0 5.4 1.3l1.3 1.3A5 5 0 0 1 12 18zm4.3-4.3L13.6 11h1.5a3.2 3.2 0 0 0-5.4-1.3L8.4 8.4A5 5 0 0 1 16.9 11H19l-2.7 2.7z"/></svg></button>
+<button id="fxBtn" aria-label="Effetti viso"><svg viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg></button>
 <div id="progress"><i id="bar"></i></div>
 <div id="countdown"><span></span></div>
 <div id="toast"></div>
@@ -273,6 +287,14 @@ textarea{width:100%;height:50vh;border:0;border-radius:12px;background:var(--cel
     </div>
     <p class="foot">Si parte sempre con la fotocamera frontale; il tasto in alto a destra passa alla posteriore. Il video salvato non è mai specchiato: chi lo guarda ti vede com'è davvero.</p>
 
+    <div class="group-t">Effetti viso</div>
+    <div class="group">
+      <div class="cell"><span class="t">Effetti attivi</span><label class="sw"><input type="checkbox" id="fxOn"><i></i></label></div>
+      <div class="cell slider fxs"><span class="t">Sfondo sfocato</span><span class="v" id="bokehV"></span><input type="range" id="bokeh" min="0" max="1" step="0.05"></div>
+      <div class="cell slider fxs"><span class="t">Pelle levigata</span><span class="v" id="smoothV"></span><input type="range" id="smooth" min="0" max="1" step="0.05"></div>
+    </div>
+    <p class="foot" id="fxFoot">Gli effetti finiscono anche nel video registrato. Si accendono e spengono anche con il tasto ✦ in alto a destra.</p>
+
     <div class="group-t">Registrazione</div>
     <div class="group">
       <div class="cell"><span class="t">Conto alla rovescia</span><div class="seg" id="cdSeg"><button data-v="0">No</button><button data-v="3">3 s</button><button data-v="5">5 s</button></div></div>
@@ -303,7 +325,7 @@ textarea{width:100%;height:50vh;border:0;border-radius:12px;background:var(--cel
 const $ = id => document.getElementById(id);
 const LS = 'gobbo.v1';
 const DEFAULT_TEXT = "Benvenuto in Gobbo.\n\nTocca “Testo” in basso per scrivere o incollare quello che vuoi leggere.\n\nPremi il pulsante rosso: parte un breve conto alla rovescia, poi inizia la registrazione e il testo comincia a scorrere.\n\nRegola la velocità mentre leggi. Tocca il testo per una pausa, trascinalo per tornare indietro.\n\nTieni lo sguardo sulla riga evidenziata, vicino alla fotocamera: sembrerà che tu stia parlando a chi ti guarda.\n\nBuona registrazione!";
-const defaults = {text:DEFAULT_TEXT, speed:3, size:34, ph:42, shade:.4, pad:22, center:false, flip:false, mirror:true, cdSec:3, facing:'user'};
+const defaults = {text:DEFAULT_TEXT, speed:3, size:34, ph:42, shade:.4, pad:22, center:false, flip:false, mirror:true, cdSec:3, facing:'user', fx:true, bokeh:.45, smooth:.5};
 let S = {...defaults};
 try { Object.assign(S, JSON.parse(localStorage.getItem(LS) || '{}')); } catch(e) {}
 S.facing = 'user'; // all'avvio si parte sempre dalla fotocamera frontale
@@ -330,6 +352,13 @@ function apply() {
   document.documentElement.style.setProperty('--shade', S.shade);
   prompter.classList.toggle('flip', S.flip);
   cam.classList.toggle('mirror', S.mirror && S.facing === 'user');
+  $('fx').classList.toggle('mirror', S.mirror && S.facing === 'user');
+  $('fxOn').checked = S.fx; $('bokeh').value = S.bokeh; $('smooth').value = S.smooth;
+  $('bokehV').textContent = S.bokeh ? Math.round(S.bokeh * 100) + '%' : 'No';
+  $('smoothV').textContent = S.smooth ? Math.round(S.smooth * 100) + '%' : 'No';
+  document.querySelectorAll('.fxs').forEach(c => c.classList.toggle('dim', !S.fx));
+  $('fxBtn').classList.toggle('on', S.fx && fxReady);
+  if (fx) fx.set({ bokeh: S.bokeh, smooth: S.smooth });
   $('speed').value = S.speed; $('size').value = S.size; $('pad').value = S.pad; $('ph').value = S.ph; $('shadeR').value = S.shade;
   $('speedV').textContent = S.speed; $('sizeV').textContent = S.size;
   $('padV').textContent = S.pad + ' px'; $('phV').textContent = S.ph + '%'; $('shadeV').textContent = Math.round(S.shade * 100) + '%';
@@ -529,6 +558,7 @@ $('startBtn').onclick = async () => {
   $('startBtn').textContent = 'Attendo il permesso…';
   try {
     await startCamera();
+    if (S.fx) fxEnsure().then(fxRefresh);
     $('start').style.transition = 'opacity .35s'; $('start').style.opacity = 0;
     setTimeout(() => $('start').style.display = 'none', 350);
     apply();
@@ -538,6 +568,46 @@ $('startBtn').onclick = async () => {
   }
 };
 
+/* ---------- effetti viso (sfondo sfocato, pelle levigata) ---------- */
+let fx = null, fxReady = false, fxLoading = null, fxFailed = false, fxSlowWarned = false;
+function fxActive() { return !!(fx && fxReady && S.fx && (S.bokeh > 0 || S.smooth > 0)); }
+function fxRefresh() {
+  const on = fxActive();
+  document.body.classList.toggle('fxon', on);
+  if (fx) on ? fx.start() : fx.stop();
+  $('fxBtn').classList.toggle('on', on);
+}
+async function fxEnsure() {
+  if (fx || fxFailed) return fx;
+  if (!fxLoading) fxLoading = (async () => {
+    $('fxBtn').classList.add('loading');
+    try {
+      const mod = await import('./effects.js');
+      fx = await mod.createEffects(cam, $('fx'), '.');
+      fx.set({ bokeh: S.bokeh, smooth: S.smooth });
+      fx.onFps(f => {
+        // se il telefono non regge, riduce la risoluzione dell'elaborazione
+        if (f < 20 && fxActive() && !fxSlowWarned) { fxSlowWarned = true; fx.set({ maxSide: 1280 }); toast('Qualità effetti ridotta per restare fluido'); }
+      });
+      fxReady = true;
+    } catch (e) {
+      console.error(e); fxFailed = true; toast('Effetti non disponibili su questo dispositivo');
+      $('fxBtn').hidden = true; $('fxFoot').textContent = 'Effetti non disponibili su questo dispositivo.';
+    } finally { $('fxBtn').classList.remove('loading'); }
+    return fx;
+  })();
+  return fxLoading;
+}
+$('fxBtn').onclick = async () => {
+  if (state !== 'idle') { toast('Ferma la registrazione per cambiare gli effetti'); return; }
+  S.fx = !S.fx; save(); apply();
+  if (S.fx) await fxEnsure();
+  fxRefresh(); toast(S.fx ? 'Effetti attivi' : 'Effetti spenti');
+};
+$('fxOn').onchange = async e => { S.fx = e.target.checked; save(); apply(); if (S.fx) await fxEnsure(); fxRefresh(); };
+$('bokeh').oninput = e => { S.bokeh = +e.target.value; fill(e.target); save(); apply(); fxRefresh(); };
+$('smooth').oninput = e => { S.smooth = +e.target.value; fill(e.target); save(); apply(); fxRefresh(); };
+
 /* ---------- recording ---------- */
 function pickMime() {
   if (!window.MediaRecorder) return null;
@@ -545,6 +615,7 @@ function pickMime() {
   return c.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+let recSrc = null;
 let cancelCd = false, state = 'idle'; // idle | counting | recording
 async function countdown() {
   const el = $('countdown'), sp = el.querySelector('span');
@@ -568,8 +639,11 @@ $('rec').onclick = async () => {
   document.body.classList.remove('counting');
   if (cancelCd) { state = 'idle'; lockUi(false); return; }
   chunks = [];
-  try { recorder = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined); }
-  catch (e) { recorder = new MediaRecorder(stream); }
+  // con gli effetti si registra il canvas elaborato più l'audio del microfono
+  const src = fxActive() ? new MediaStream([...fx.stream(30).getVideoTracks(), ...stream.getAudioTracks()]) : stream;
+  try { recorder = new MediaRecorder(src, mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined); }
+  catch (e) { recorder = new MediaRecorder(src); }
+  recSrc = src;
   recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
   recorder.onstop = showReview;
   recorder.start(1000);
@@ -583,6 +657,8 @@ function stopRec() {
   setPlaying(false); clearInterval(timerInt); state = 'idle';
   document.body.classList.remove('recording'); lockUi(false);
   recorder.stop();
+  // ferma solo la traccia del canvas, non quelle della fotocamera
+  if (recSrc && recSrc !== stream) recSrc.getVideoTracks().forEach(t => t.stop());
 }
 function ext() { return (recBlob && recBlob.type.includes('webm')) ? 'webm' : 'mp4'; }
 function fileName() {
