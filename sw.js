@@ -1,4 +1,4 @@
-const CACHE = 'gobbo-v7';
+const CACHE = 'gobbo-v8';
 const FILES = ['./', 'index.html', 'effects.js', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 // librerie e modello non cambiano mai: si scaricano una volta e poi si usano dalla cache
 const IMMUTABLE = /\/(vendor|models)\//;

@@ -99,6 +99,16 @@ body.recording .pill .dot{background:#fff;animation:blink 1s infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 body.recording #flipCam,body.counting #flipCam,body.recording #fxBtn,body.counting #fxBtn{opacity:.3}
 .cell.slider.dim{opacity:.4}
+#fxPanel{position:fixed;top:calc(var(--st) + 100px);right:12px;left:auto;width:min(300px,calc(100% - 24px));z-index:8;
+  padding:14px 16px 10px;border-radius:20px;background:var(--glass-strong);border:.5px solid var(--line);
+  backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);
+  transform-origin:top right;transition:opacity .2s,transform .2s}
+#fxPanel[hidden]{display:block!important;opacity:0;transform:scale(.92);pointer-events:none}
+#fxPanel .hd{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:600;margin-bottom:6px}
+#fxPanel .ctl{margin:0 0 4px}
+#fxPanel .ctl .lab{flex:0 0 66px}
+#fxPanel .ctl .val{flex:0 0 40px}
+#fxPanel.off .ctl{opacity:.4}
 #countdown{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;pointer-events:none}
 #countdown span{width:140px;height:140px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-size:76px;font-weight:700;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
@@ -224,6 +234,11 @@ textarea{width:100%;height:50vh;border:0;border-radius:12px;background:var(--cel
 <div id="hud"><div class="pill"><span class="dot"></span><span id="time">00:00</span><span class="sub" id="remain"></span></div></div>
 <button id="flipCam" aria-label="Cambia fotocamera"><svg viewBox="0 0 24 24"><path d="M20 5h-3.17L15 3H9L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-8 13a5 5 0 0 1-4.9-4H5l2.7-2.7L10.4 14H8.9a3.2 3.2 0 0 0 5.4 1.3l1.3 1.3A5 5 0 0 1 12 18zm4.3-4.3L13.6 11h1.5a3.2 3.2 0 0 0-5.4-1.3L8.4 8.4A5 5 0 0 1 16.9 11H19l-2.7 2.7z"/></svg></button>
 <button id="fxBtn" aria-label="Effetti viso"><svg viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg></button>
+<div id="fxPanel" hidden>
+  <div class="hd"><span>Effetti viso</span><label class="sw"><input type="checkbox" id="fxOn2" aria-label="Effetti attivi"><i></i></label></div>
+  <div class="ctl"><span class="lab">Sfondo</span><input type="range" id="bokeh2" min="0" max="1" step="0.05" aria-label="Sfondo sfocato"><span class="val" id="bokeh2V"></span></div>
+  <div class="ctl"><span class="lab">Pelle</span><input type="range" id="smooth2" min="0" max="1" step="0.05" aria-label="Pelle levigata"><span class="val" id="smooth2V"></span></div>
+</div>
 <div id="progress"><i id="bar"></i></div>
 <div id="countdown"><span></span></div>
 <div id="toast"></div>
@@ -293,7 +308,7 @@ textarea{width:100%;height:50vh;border:0;border-radius:12px;background:var(--cel
       <div class="cell slider fxs"><span class="t">Sfondo sfocato</span><span class="v" id="bokehV"></span><input type="range" id="bokeh" min="0" max="1" step="0.05"></div>
       <div class="cell slider fxs"><span class="t">Pelle levigata</span><span class="v" id="smoothV"></span><input type="range" id="smooth" min="0" max="1" step="0.05"></div>
     </div>
-    <p class="foot" id="fxFoot">Gli effetti finiscono anche nel video registrato. Si accendono e spengono anche con il tasto ✦ in alto a destra.</p>
+    <p class="foot" id="fxFoot">Gli effetti finiscono anche nel video registrato. Si regolano anche al volo con il tasto ✦ in alto a destra.</p>
 
     <div class="group-t">Registrazione</div>
     <div class="group">
@@ -354,8 +369,10 @@ function apply() {
   cam.classList.toggle('mirror', S.mirror && S.facing === 'user');
   $('fx').classList.toggle('mirror', S.mirror && S.facing === 'user');
   $('fxOn').checked = S.fx; $('bokeh').value = S.bokeh; $('smooth').value = S.smooth;
-  $('bokehV').textContent = S.bokeh ? Math.round(S.bokeh * 100) + '%' : 'No';
-  $('smoothV').textContent = S.smooth ? Math.round(S.smooth * 100) + '%' : 'No';
+  $('fxOn2').checked = S.fx; $('bokeh2').value = S.bokeh; $('smooth2').value = S.smooth;
+  $('bokehV').textContent = $('bokeh2V').textContent = S.bokeh ? Math.round(S.bokeh * 100) + '%' : 'No';
+  $('smoothV').textContent = $('smooth2V').textContent = S.smooth ? Math.round(S.smooth * 100) + '%' : 'No';
+  $('fxPanel').classList.toggle('off', !S.fx);
   document.querySelectorAll('.fxs').forEach(c => c.classList.toggle('dim', !S.fx));
   $('fxBtn').classList.toggle('on', S.fx && fxReady);
   if (fx) fx.set({ bokeh: S.bokeh, smooth: S.smooth });
@@ -598,15 +615,21 @@ async function fxEnsure() {
   })();
   return fxLoading;
 }
-$('fxBtn').onclick = async () => {
+// il tasto ✦ apre un pannello rapido con interruttore e cursori di intensità
+$('fxBtn').onclick = e => {
+  e.stopPropagation();
   if (state !== 'idle') { toast('Ferma la registrazione per cambiare gli effetti'); return; }
-  S.fx = !S.fx; save(); apply();
-  if (S.fx) await fxEnsure();
-  fxRefresh(); toast(S.fx ? 'Effetti attivi' : 'Effetti spenti');
+  $('fxPanel').hidden = !$('fxPanel').hidden;
 };
-$('fxOn').onchange = async e => { S.fx = e.target.checked; save(); apply(); if (S.fx) await fxEnsure(); fxRefresh(); };
-$('bokeh').oninput = e => { S.bokeh = +e.target.value; fill(e.target); save(); apply(); fxRefresh(); };
-$('smooth').oninput = e => { S.smooth = +e.target.value; fill(e.target); save(); apply(); fxRefresh(); };
+document.addEventListener('pointerdown', e => {
+  if (!$('fxPanel').hidden && !e.target.closest('#fxPanel,#fxBtn')) $('fxPanel').hidden = true;
+});
+async function setFx(on) { S.fx = on; save(); apply(); if (S.fx) await fxEnsure(); fxRefresh(); }
+$('fxOn').onchange = e => setFx(e.target.checked);
+$('fxOn2').onchange = e => setFx(e.target.checked);
+const setLevel = (k, v) => { S[k] = v; save(); apply(); fxRefresh(); };
+$('bokeh').oninput = $('bokeh2').oninput = e => setLevel('bokeh', +e.target.value);
+$('smooth').oninput = $('smooth2').oninput = e => setLevel('smooth', +e.target.value);
 
 /* ---------- recording ---------- */
 function pickMime() {
@@ -634,6 +657,7 @@ $('rec').onclick = async () => {
   if (state === 'recording') { stopRec(); return; }
   const mime = pickMime();
   if (mime === null) { toast('Registrazione non supportata da questo browser'); return; }
+  $('fxPanel').hidden = true;
   state = 'counting'; document.body.classList.add('counting'); cancelCd = false; setPlaying(false); lockUi(true);
   await countdown();
   document.body.classList.remove('counting');
